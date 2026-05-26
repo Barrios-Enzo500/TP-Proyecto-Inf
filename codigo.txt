@@ -77,7 +77,6 @@ void loop() {
 
   lcd.print("cm");
 
-  // ----- SERIAL -----
   Serial.print("Temp: ");
   Serial.print(temperature);
 
