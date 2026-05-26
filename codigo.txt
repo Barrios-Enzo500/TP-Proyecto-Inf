@@ -1,0 +1,152 @@
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(12, 11, 4, 7, 13, A2);
+
+int tempPin = A0;
+
+int pirPin = 2;
+
+int ldrPin = A1;
+
+int trigPin = 9;
+int echoPin = 10;
+
+int redPin = 3;
+int greenPin = 5;
+int bluePin = 6;
+
+int buzzer = 8;
+
+void setup() {
+
+  Serial.begin(9600);
+
+  lcd.begin(16,2);
+
+  pinMode(pirPin, INPUT);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  pinMode(redPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
+
+  pinMode(buzzer, OUTPUT);
+}
+
+void loop() {
+
+  int tempValue = analogRead(tempPin);
+
+  float voltage = tempValue * 5.0;
+  voltage /= 1024.0;
+
+  float temperature = (voltage - 0.5) * 100;
+
+  int motion = digitalRead(pirPin);
+
+  int lightValue = analogRead(ldrPin);
+
+  float porcentajeLuz = map(lightValue, 0, 1023, 0, 100);
+
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+
+  float distance = duration * 0.034 / 2;
+
+  lcd.clear();
+
+  lcd.setCursor(0,0);
+  lcd.print("T:");
+  lcd.print(temperature);
+
+  lcd.print(" L:");
+  lcd.print((int)porcentajeLuz);
+
+  lcd.setCursor(0,1);
+  lcd.print("D:");
+  lcd.print(distance);
+
+  lcd.print("cm");
+
+  // ----- SERIAL -----
+  Serial.print("Temp: ");
+  Serial.print(temperature);
+
+  Serial.print(" Luz: ");
+  Serial.print(porcentajeLuz);
+
+  Serial.print("% Distancia: ");
+  Serial.print(distance);
+
+  Serial.print(" Movimiento: ");
+  Serial.println(motion);
+
+  analogWrite(redPin, 0);
+  analogWrite(greenPin, 0);
+  analogWrite(bluePin, 0);
+
+  noTone(buzzer);
+
+  bool noche = porcentajeLuz < 20;
+
+  if (temperature > 39) {
+
+    analogWrite(redPin, 255);
+
+    tone(buzzer, 1000);
+    delay(300);
+    noTone(buzzer);
+
+    Serial.println("ALERTA: TOCANDO OBRA");
+  }
+
+  else if (motion == HIGH) {
+
+    analogWrite(redPin, 255);
+    analogWrite(greenPin, 150);
+
+    tone(buzzer, 700);
+    delay(200);
+    noTone(buzzer);
+
+    Serial.println("Movimiento detectado");
+  }
+
+  if (!noche && distance < 100) {
+
+    analogWrite(redPin, 255);
+
+    tone(buzzer, 1200);
+    delay(150);
+
+    noTone(buzzer);
+    delay(150);
+
+    tone(buzzer, 1200);
+    delay(150);
+
+    noTone(buzzer);
+
+    Serial.println("PELIGRO: Muy cerca");
+  }
+
+  if (noche && (motion == HIGH || temperature > 39)) {
+
+    analogWrite(redPin, 255);
+
+    tone(buzzer, 1500);
+
+    Serial.println("ALARMA NOCTURNA ACTIVADA");
+  }
+
+  delay(1000);
+}
